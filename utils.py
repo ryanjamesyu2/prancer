@@ -68,4 +68,6 @@ def preprocess_hhs(data):
     data['longitude'] = lons
     data = data.drop(columns=['geocoded_hospital_address'])
 
+    # possible change column names if we want to do that
+
     return data

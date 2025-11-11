@@ -1,6 +1,6 @@
 # Python script to load the HHS data set
 import sys
-from utils import load_data
+from utils import load_data, preprocess_hhs
 
 
 # Driver code to load data
@@ -19,11 +19,11 @@ cols = [
     'staffed_icu_adult_patients_confirmed_covid_7_day_avg'
 ]
 data = load_data(sys.argv[1], cols)
-print(data.head())
+data = preprocess_hhs(data)
 
 # data = preprocess_hhs(data)
 
-# Use try-except, with rollback in except to make sure no data is inserted if
-# there's an error
+# Use try-except to insert, with rollback in except to make sure no data
+# is inserted if there's an error
 
 # Driver code to update hospital table if necessary
