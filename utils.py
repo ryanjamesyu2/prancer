@@ -1,6 +1,7 @@
 # A python module to hold function definitions to aid in data loading
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 
 def load_data(filepath, cols):
@@ -69,5 +70,34 @@ def preprocess_hhs(data):
     data = data.drop(columns=['geocoded_hospital_address'])
 
     # possible change column names if we want to do that
+
+    return data
+
+
+def add_date(data, filepath):
+    """A function to add the date updated column to the Quality data
+
+    Parameters
+    ----------
+    data : DataFrame
+        A pandas data frame containing the information loaded from a
+        quality .csv file
+    filepath : str
+        A string containing the filepath provided to load the data
+
+    Returns
+    -------
+    DataFrame
+        A pandas data frame containing the same information as the input
+        with one extra column containing the date
+    """
+
+    # file name will be what is after the last /
+    filename = filepath.split('/')[-1]
+    parts = filename.split('-')
+
+    # Assume each happens on the 15th (approximate middle) of each month
+    date_updated = parts[1] + '-' + parts[2][:2] + "-15"
+    data['date_updated'] = datetime.strptime(date_updated, '%Y-%m-%d')
 
     return data
