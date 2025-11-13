@@ -17,8 +17,16 @@ cols = [
     "Emergency Services",
     "Hospital overall rating"
 ]
-data = load_data(sys.argv[1], cols)
-data = preprocess_quality(data, sys.argv[1])
+
+try:
+    data = load_data(sys.argv[1], cols)
+except Exception as e:
+    print("Error loading quality data:", e)
+
+try:
+    data = preprocess_quality(data, sys.argv[1])
+except Exception as e:
+    print("Error preprocessing quality data:", e)
 
 # Use try-except to insert, with rollback in except to make sure no data
 # is inserted if there's an error

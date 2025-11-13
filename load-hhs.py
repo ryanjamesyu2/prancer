@@ -18,8 +18,16 @@ cols = [
     'inpatient_beds_used_covid_7_day_avg',
     'staffed_icu_adult_patients_confirmed_covid_7_day_avg'
 ]
-data = load_data(sys.argv[1], cols)
-data = preprocess_hhs(data)
+
+try:
+    data = load_data(sys.argv[1], cols)
+except Exception as e:
+    print("Error loading HHS data:", e)
+
+try:
+    data = preprocess_hhs(data)
+except Exception as e:
+    print("Error preprocessing HHS data:", e)
 
 # data = preprocess_hhs(data)
 
