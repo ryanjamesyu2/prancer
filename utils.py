@@ -1,6 +1,7 @@
 # A python module to hold function definitions to aid in data loading
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 
 def load_data(filepath, cols):
@@ -52,11 +53,22 @@ def preprocess_hhs(data):
     ]
     data[str_cols] = data[str_cols].astype(str)
     data[float_cols] = data[float_cols].astype(float)
+
+    # Add the date column
     data['collection_week'] = pd.to_datetime(data['collection_week'],
                                              format='%Y-%m-%d')
 
     # Replace missing values and -999999 with None
     data = data.replace(['nan', np.nan, -999999], None)
+
+    # FIPS code should be a string of 5 characters, dropping the decimals
+    trimmed = [s[:-2] if s else s for s in data['fips_code']]
+    padded = [s.rjust(5, '0') if s and len(s) < 5 else s for s in trimmed]
+    data['fips_code'] = padded
+
+    # ZIP code also should be a string of 5 characters, adding leading 0's
+    padded = [s.rjust(5, '0') if s and len(s) < 5 else s for s in data['zip']]
+    data['zip'] = padded
 
     # Split geocoded address to latitude and longitude
     geo_loc = data['geocoded_hospital_address'].str.split(' ')
@@ -69,5 +81,38 @@ def preprocess_hhs(data):
     data = data.drop(columns=['geocoded_hospital_address'])
 
     # possible change column names if we want to do that
+
+    return data
+
+
+def preprocess_quality(data, filepath):
+    """A function to pre-process a Pandas dataframe containing Quality data
+
+    Parameters
+    ----------
+    data : DataFrame
+        A pandas data frame containing the information loaded from a
+        quality .csv file
+    filepath : str
+        A string containing the filepath provided to load the data
+
+    Returns
+    -------
+    DataFrame
+        A Pandas DataFrame of processed data
+    """
+
+    # file name will be what is after the last /
+    filename = filepath.split('/')[-1]
+    parts = filename.split('-')
+
+    # Assume each happens on the 15th (approximate middle) of each month
+    date_updated = parts[1] + '-' + parts[2][:2] + "-15"
+    data['date_updated'] = datetime.strptime(date_updated, '%Y-%m-%d')
+
+    # left pad ZIP code if we are missing leading 0's
+    data['ZIP Code'] = data['ZIP Code'].astype(str)
+    z = [s.rjust(5, '0') if s and len(s) < 5 else s for s in data['ZIP Code']]
+    data['ZIP Code'] = z
 
     return data

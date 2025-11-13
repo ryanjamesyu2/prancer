@@ -1,6 +1,6 @@
 # Python script to load the hospital quality data set
 import sys
-from utils import load_data
+from utils import load_data, preprocess_quality
 
 # Driver code to load data
 
@@ -18,8 +18,7 @@ cols = [
     "Hospital overall rating"
 ]
 data = load_data(sys.argv[1], cols)
-# No other preprocessing to do--no missing values, all columns are correct
-# data types. Only thing is to possibly rename columns if we want to
+data = preprocess_quality(data, sys.argv[1])
 
 # Use try-except to insert, with rollback in except to make sure no data
 # is inserted if there's an error
