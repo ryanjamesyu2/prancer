@@ -42,3 +42,69 @@ except ValueError:
 # is inserted if there's an error
 
 # Driver code to update hospital table if necessary
+
+
+def get_connection():
+    return psycopg.connect(
+        host="debprodserver.postgres.database.azure.com",
+        dbname="qianruiw", user="qianruiw", password="nuuOItcGAE")
+
+
+def main():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        with conn.transaction():
+            quality_rows = []
+            for _, r in data.iterrows():
+                hospital_pk = str(r['Facility ID']).strip()
+                if not hospital_pk:
+                    continue
+
+                # Normalize quality rating to ENUM: '1'..'5' or 'Not Available'
+                raw_q = str(r['Hospital overall rating']).strip()
+                if raw_q in {'1', '2', '3', '4', '5'}:
+                    quality_rating = raw_q
+                else:
+                    quality_rating = "Not Available"
+
+                hosp_type = str(r['Hospital Type']).strip() if r['Hospital Type'] is not None else None
+                ownership = str(r['Hospital Ownership']).strip() if r['Hospital Ownership'] is not None else None
+
+                raw_em = str(r['Emergency Services']).strip().lower() if r['Emergency Services'] is not None else ""
+                if raw_em == "Yes":
+                    emergency = True
+                elif raw_em == "No":
+                    emergency = False
+                else:
+                    emergency = None
+
+                quality_rows.append((quality_rating, date_updated, hosp_type,
+                                     ownership, emergency, hospital_pk,))
+
+            cursor.executemany(
+                """
+                INSERT INTO hospital_quality (
+                    quality_rating,
+                    date_updated,
+                    type_of_hospital,
+                    type_of_ownership,
+                    emergency_services,
+                    hospital_pk
+                )
+                VALUES (%s, %s, %s, %s, %s, %s);
+                """, quality_rows,
+            )
+            print(f"Inserted f{len(quality_rows)} rows into quality.")
+    except Exception as e:
+        print("Error inserting data", e)
+        raise
+
+    finally:
+        conn.close()
+        cursor.close()
+
+
+if __name__ == "__main__":
+    main()
