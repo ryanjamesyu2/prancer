@@ -50,6 +50,18 @@ def get_connection():
         dbname="qianruiw", user="qianruiw", password="nuuOItcGAE")
 
 
+def parse_emergency(value):
+    if value is None:
+        return None
+    s = str(value).strip().lower()
+    if s == "yes":
+        return True
+    elif s == "no":
+        return False
+    else:
+        return None
+
+
 def main():
     conn = get_connection()
     cursor = conn.cursor()
@@ -57,31 +69,31 @@ def main():
     try:
         with conn.transaction():
             quality_rows = []
+            skipped_missing_hospital = 0
+            
             for _, r in data.iterrows():
                 hospital_pk = str(r['Facility ID']).strip()
                 if not hospital_pk:
                     continue
 
-                # Normalize quality rating to ENUM: '1'..'5' or 'Not Available'
+                # Check that this hospital exists in main `hospital` table
+                cursor.execute(
+                    "SELECT 1 FROM hospital WHERE hospital_pk = %s",
+                    (hospital_pk,),
+                )
+                if cursor.fetchone() is None:
+                    print(f"[SKIP] Hospital {hospital_pk} not found in hospital table")
+                    skipped_missing_hospital += 1
+                    continue
+
+                # Normalize quality rating to ENUM
                 raw_q = str(r['Hospital overall rating']).strip()
-                if raw_q in {'1', '2', '3', '4', '5'}:
-                    quality_rating = raw_q
-                else:
-                    quality_rating = "Not Available"
+                quality_rating = raw_q if raw_q in {'1', '2', '3', '4', '5'} else "Not Available"
+                hosp_type = r['Hospital Type']
+                ownership = r['Hospital Ownership']
+                emergency = parse_emergency(r["Emergency Services"])
 
-                hosp_type = str(r['Hospital Type']).strip() if r['Hospital Type'] is not None else None
-                ownership = str(r['Hospital Ownership']).strip() if r['Hospital Ownership'] is not None else None
-
-                raw_em = str(r['Emergency Services']).strip().lower() if r['Emergency Services'] is not None else ""
-                if raw_em == "Yes":
-                    emergency = True
-                elif raw_em == "No":
-                    emergency = False
-                else:
-                    emergency = None
-
-                quality_rows.append((quality_rating, date_updated, hosp_type,
-                                     ownership, emergency, hospital_pk,))
+                quality_rows.append((quality_rating, date_updated, hosp_type, ownership, emergency, hospital_pk))
 
             cursor.executemany(
                 """
@@ -96,7 +108,9 @@ def main():
                 VALUES (%s, %s, %s, %s, %s, %s);
                 """, quality_rows,
             )
-            print(f"Inserted f{len(quality_rows)} rows into quality.")
+            print(f"Inserted {len(quality_rows)} rows into hospital_quality.")
+            print(f"Skipped {skipped_missing_hospital} rows due to missing hospitals.")
+
     except Exception as e:
         print("Error inserting data", e)
         raise
