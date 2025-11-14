@@ -104,6 +104,7 @@ def main():
                 """
                 INSERT INTO hospital (hospital_pk, hospital_name, address, longitude, latitude, fips_code, zipcode)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (hospital_pk) DO NOTHING
                 """, hosp_rows
             )
             print(f"Inserted {len(hosp_rows)} rows into hospital.")
