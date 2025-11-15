@@ -2,6 +2,7 @@
 import sys
 from utils import load_data, preprocess_hhs
 import psycopg
+import credentials
 import pandas as pd
 
 # Driver code to load data
@@ -41,7 +42,7 @@ except Exception as e:
 def get_connection():
     return psycopg.connect(
         host="debprodserver.postgres.database.azure.com",
-        dbname="qianruiw", user="qianruiw", password="nuuOItcGAE")
+        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
 
 
 def fmt_hospital(hpk, info):

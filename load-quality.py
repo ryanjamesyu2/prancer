@@ -2,6 +2,7 @@
 import sys
 from utils import load_data, preprocess_quality
 import psycopg
+import credentials
 from datetime import datetime
 
 # Driver code to load data
@@ -47,7 +48,7 @@ except ValueError:
 def get_connection():
     return psycopg.connect(
         host="debprodserver.postgres.database.azure.com",
-        dbname="qianruiw", user="qianruiw", password="nuuOItcGAE")
+        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
 
 
 def parse_emergency(value):
