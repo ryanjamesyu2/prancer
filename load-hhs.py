@@ -59,15 +59,22 @@ def main():
     try:
         with conn.transaction():
 
+            # get all zipcodes
+            cursor.execute(
+                "SELECT zipcode FROM locations",
+            )
+            db_zipcodes = [row[0] for row in cursor.fetchall()]
             # 1. ---Insert into locations---
             # drop duplicate (zip,state,city) combos to avoid redundant inserts
-            loc_df = data[['zip', 'state', 'city']].drop_duplicates()
+            loc_df = data[['ZIP Code', 'State', 'City']].drop_duplicates()
+            # remove zipcodes already in database
+            loc_df = loc_df[~loc_df['ZIP Code'].isin(db_zipcodes)]
             loc_rows = []
             skipped = 0
             for _, r in loc_df.iterrows():
-                zipcode = r['zip']
-                state = r['state']
-                city = r['city']
+                zipcode = r['ZIP Code']
+                state = r['State']
+                city = r['City']
 
                 if pd.isna(zipcode) or pd.isna(state) or pd.isna(city):
                     print(f"Skipped: zipcode={zipcode}, state={state}, city={city}  (missing value)")
@@ -82,7 +89,7 @@ def main():
                 ON CONFLICT (zipcode) DO NOTHING
                 """, loc_rows
             )
-            print(f"Inserted {len(loc_rows)} rows into locations.")
+            print(f"Inserted {len(loc_rows)} new rows into locations.")
             print(f"Skipped {skipped} rows due to null city/state/zipcode.")
 
             # 2. ---Insert into hospital---

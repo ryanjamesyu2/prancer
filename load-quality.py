@@ -2,6 +2,7 @@
 import sys
 from utils import load_data, preprocess_quality
 import psycopg
+import pandas as pd
 import credentials
 from datetime import datetime
 
@@ -71,7 +72,45 @@ def main():
         with conn.transaction():
             quality_rows = []
             skipped_missing_hospital = 0
-            
+            # get all zipcodes
+            cursor.execute(
+                "SELECT zipcode FROM locations",
+            )
+            db_zipcodes = [row[0] for row in cursor.fetchall()]
+            # 1. ---Insert into locations---
+            # drop duplicate (zip,state,city) combos to avoid redundant inserts
+            loc_df = data[['ZIP Code', 'State', 'City']].drop_duplicates()
+            # remove zipcodes already in database
+            loc_df = loc_df[~loc_df['ZIP Code'].isin(db_zipcodes)]
+            loc_rows = []
+            skipped = 0
+            for _, r in loc_df.iterrows():
+                zipcode = r['ZIP Code']
+                state = r['State']
+                city = r['City']
+
+                if pd.isna(zipcode) or pd.isna(state) or pd.isna(city):
+                    print(f"Skipped: zipcode={zipcode}, state={state}, city={city}  (missing value)")
+                    skipped += 1
+                    continue
+
+                loc_rows.append((zipcode, state, city))
+            cursor.executemany(
+                """
+                INSERT INTO locations (zipcode, state, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (zipcode) DO NOTHING
+                """, loc_rows
+            )
+            print(f"Inserted {len(loc_rows)} new rows into locations.")
+            print(f"Skipped {skipped} rows due to null city/state/zipcode.")
+
+
+            # get all hospitals in database
+            cursor.execute(
+                "SELECT hospital_pk FROM hospital",
+            )
+            db_hospital_pks = [row[0] for row in cursor.fetchall()]
             for _, r in data.iterrows():
                 hospital_pk = str(r['Facility ID']).strip()
                 if not hospital_pk:
