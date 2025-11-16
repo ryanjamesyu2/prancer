@@ -214,8 +214,8 @@ def main():
         raise
 
     finally:
-        conn.close()
         cursor.close()
+        conn.close()
 
 
 if __name__ == "__main__":
