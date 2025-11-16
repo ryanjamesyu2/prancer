@@ -1,9 +1,8 @@
 # Python script to load the hospital quality data set
 import sys
-from utils import load_data, preprocess_quality
+from utils import load_data, preprocess_quality, get_connection, parse_emergency
 import psycopg
 import pandas as pd
-import credentials
 from datetime import datetime
 
 # Driver code to load data
@@ -44,24 +43,6 @@ except ValueError:
 # is inserted if there's an error
 
 # Driver code to update hospital table if necessary
-
-
-def get_connection():
-    return psycopg.connect(
-        host="debprodserver.postgres.database.azure.com",
-        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
-
-
-def parse_emergency(value):
-    if value is None:
-        return None
-    s = str(value).strip().lower()
-    if s == "yes":
-        return True
-    elif s == "no":
-        return False
-    else:
-        return None
 
 
 def main():

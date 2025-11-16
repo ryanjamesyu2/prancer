@@ -2,6 +2,8 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import psycopg
+import credentials
 
 
 def load_data(filepath, cols):
@@ -116,3 +118,28 @@ def preprocess_quality(data, filepath):
     data['ZIP Code'] = z
 
     return data
+
+
+def get_connection():
+    return psycopg.connect(
+        host="debprodserver.postgres.database.azure.com",
+        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
+
+
+def parse_emergency(value):
+    if value is None:
+        return None
+    s = str(value).strip().lower()
+    if s == "yes":
+        return True
+    elif s == "no":
+        return False
+    else:
+        return None
+
+
+def fmt_hospital(hpk, info):
+    if hpk not in info:
+        return f"[unknown hospital pk={hpk}]"
+    x = info[hpk]
+    return (f"{x['name']} | {x['address']} | {x['city']}, {x['state']} {x['zip']} | pk={hpk}")

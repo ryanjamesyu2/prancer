@@ -1,6 +1,6 @@
 # Python script to load the HHS data set
 import sys
-from utils import load_data, preprocess_hhs
+from utils import load_data, preprocess_hhs, get_connection, fmt_hospital
 import psycopg
 import credentials
 import pandas as pd
@@ -38,18 +38,6 @@ except Exception as e:
 
 # Driver code to update hospital table if necessary
 
-
-def get_connection():
-    return psycopg.connect(
-        host="debprodserver.postgres.database.azure.com",
-        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
-
-
-def fmt_hospital(hpk, info):
-    if hpk not in info:
-        return f"[unknown hospital pk={hpk}]"
-    x = info[hpk]
-    return (f"{x['name']} | {x['address']} | {x['city']}, {x['state']} {x['zip']} | pk={hpk}")
 
 
 def main():
