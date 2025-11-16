@@ -3,7 +3,7 @@ import sys
 from utils import load_data, preprocess_quality, get_connection, parse_emergency
 import psycopg
 import pandas as pd
-from updateTables import update_hospitals_table
+from updateTables import update_hospitals_table, update_locations_table
 from datetime import datetime
 
 # Driver code to load data
@@ -53,63 +53,12 @@ def main():
     try:
         with conn.transaction():
             
-            # 1. ---Insert into locations---
+            # 1. ---Insert and update hospital tables---
             update_hospitals_table(cursor, data)
 
-            # 2. ---Insert into hospital---
-            # get all hospitals in database
-            cursor.execute(
-                "SELECT hospital_pk FROM hospital",
-            )
-            db_hospital_pks = [row[0] for row in cursor.fetchall()]
-            # each hospital_pk should appear once
-            hosp_df = data[['hospital_pk', 'hospital_name', 'address', 'zip']].drop_duplicates(subset=['hospital_pk'])
-            # INSERT new hospitals
-            insert_hosp_df = hosp_df[~hosp_df['hospital_pk'].isin(db_hospital_pks)]
-            hosp_rows = []
-            for _, r in insert_hosp_df.iterrows():
-                hospital_pk = r['hospital_pk']
-                hospital_name = r['hospital_name']
-                address = r['address']
-                zipcode = r['zip']
-
-                hosp_rows.append((hospital_pk, hospital_name, address, zipcode))
-            cursor.executemany(
-                """
-                INSERT INTO hospital (hospital_pk, hospital_name, address, longitude, latitude, fips_code, zipcode)
-                VALUES (%s, %s, %s, NULL, NULL, NULL, %s)
-                ON CONFLICT (hospital_pk) DO NOTHING
-                """, hosp_rows
-            )
-            print(f"Inserted {len(hosp_rows)} rows into hospital.")
-            # existing hospitals to update
-            cursor.execute(
-                "SELECT hospital_pk, hospital_name, address, zipcode FROM hospital"
-            )
-            db_hospital = pd.DataFrame(cursor.fetchall(), columns= ('hospital_pk', 'hospital_name', 'address', 'zip'))
-            update_hosp_df = hosp_df[hosp_df['hospital_pk'].isin(db_hospital_pks)]
-            db_hospital = db_hospital[db_hospital['hospital_pk'].isin(update_hosp_df['hospital_pk'])]
-            db_hospital = db_hospital.sort_values('hospital_pk').reset_index(drop=True)
-            update_hosp_df = update_hosp_df.sort_values('hospital_pk').reset_index(drop=True)
-            db_hospital = db_hospital[update_hosp_df.columns]
-            rows_different = (update_hosp_df != db_hospital).any(axis=1)
-            update_hosp_df = update_hosp_df[rows_different]
-            hosp_rows = []
-            for _, r in update_hosp_df.iterrows():
-                hospital_pk = r['hospital_pk']
-                hospital_name = r['hospital_name']
-                address = r['address']
-                zipcode = r['zip']
-
-                hosp_rows.append((hospital_name, address, zipcode, hospital_pk))
-            cursor.executemany(
-                """
-                UPDATE hospital
-                SET hospital_name = %s, address = %s, zipcode = %s
-                WHERE hospital_pk = %s
-                """, hosp_rows
-            )
-            print(f"Updated {len(hosp_rows)} rows in hospital.")
+            # 2. ---Insert and update locations table---
+            update_locations_table(cursor, data, is_quality_data = True)
+            
             # 3. ---Insert into hospital_quality---
             quality_rows = []
             skipped_missing_hospital = 0
@@ -120,6 +69,7 @@ def main():
                 hosp_type = r['Hospital Type']
                 ownership = r['Hospital Ownership']
                 emergency = parse_emergency(r["Emergency Services"])
+                hospital_pk = r['hospital_pk']
 
                 quality_rows.append((quality_rating, date_updated, hosp_type, ownership, emergency, hospital_pk))
 
