@@ -105,27 +105,52 @@ def main():
             print(f"Inserted {len(loc_rows)} new rows into locations.")
             print(f"Skipped {skipped} rows due to null city/state/zipcode.")
 
-
+            # 2. ---Insert into hospital---
             # get all hospitals in database
             cursor.execute(
                 "SELECT hospital_pk FROM hospital",
             )
             db_hospital_pks = [row[0] for row in cursor.fetchall()]
+            # each hospital_pk should appear once
+            hosp_df = data[['Facility ID', 'Facility Name', 'Address','ZIP Code']].drop_duplicates(subset=['Facility ID'])
+            # INSERT new hospitals
+            insert_hosp_df = hosp_df[~hosp_df['Facility ID'].isin(db_hospital_pks)]
+            hosp_rows = []
+            for _, r in insert_hosp_df.iterrows():
+                hospital_pk = r['Facility ID']
+                hospital_name = r['Facility Name']
+                address = r['Address']
+                zipcode = r['ZIP Code']
+
+                hosp_rows.append((hospital_pk, hospital_name, address, zipcode))
+            cursor.executemany(
+                """
+                INSERT INTO hospital (hospital_pk, hospital_name, address, longitude, latitude, fips_code, zipcode)
+                VALUES (%s, %s, %s, NULL, NULL, NULL, %s)
+                ON CONFLICT (hospital_pk) DO NOTHING
+                """, hosp_rows
+            )
+            print(f"Inserted {len(hosp_rows)} rows into hospital.")
+            # existing hospitals to update
+            update_hosp_df = hosp_df[hosp_df['Facility ID'].isin(db_hospital_pks)]
+            hosp_rows = []
+            for _, r in update_hosp_df.iterrows():
+                hospital_pk = r['Facility ID']
+                hospital_name = r['Facility Name']
+                address = r['Address']
+                zipcode = r['ZIP Code']
+
+                hosp_rows.append((hospital_name, address, zipcode, hospital_pk))
+            cursor.executemany(
+                """
+                UPDATE hospital
+                SET hospital_name = %s, address = %s, zipcode = %s
+                WHERE hospital_pk = %s
+                """, hosp_rows
+            )
+            print(f"Updated {len(hosp_rows)} rows in hospital.")
+            # 3. ---Insert into hospital_quality---
             for _, r in data.iterrows():
-                hospital_pk = str(r['Facility ID']).strip()
-                if not hospital_pk:
-                    continue
-
-                # Check that this hospital exists in main `hospital` table
-                cursor.execute(
-                    "SELECT 1 FROM hospital WHERE hospital_pk = %s",
-                    (hospital_pk,),
-                )
-                if cursor.fetchone() is None:
-                    print(f"[SKIP] Hospital {hospital_pk} not found in hospital table")
-                    skipped_missing_hospital += 1
-                    continue
-
                 # Normalize quality rating to ENUM
                 raw_q = str(r['Hospital overall rating']).strip()
                 quality_rating = raw_q if raw_q in {'1', '2', '3', '4', '5'} else "Not Available"

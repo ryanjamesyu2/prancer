@@ -66,15 +66,15 @@ def main():
             db_zipcodes = [row[0] for row in cursor.fetchall()]
             # 1. ---Insert into locations---
             # drop duplicate (zip,state,city) combos to avoid redundant inserts
-            loc_df = data[['ZIP Code', 'State', 'City']].drop_duplicates()
+            loc_df = data[['zip', 'state', 'city']].drop_duplicates()
             # remove zipcodes already in database
-            loc_df = loc_df[~loc_df['ZIP Code'].isin(db_zipcodes)]
+            loc_df = loc_df[~loc_df['zip'].isin(db_zipcodes)]
             loc_rows = []
             skipped = 0
             for _, r in loc_df.iterrows():
-                zipcode = r['ZIP Code']
-                state = r['State']
-                city = r['City']
+                zipcode = r['zip']
+                state = r['state']
+                city = r['city']
 
                 if pd.isna(zipcode) or pd.isna(state) or pd.isna(city):
                     print(f"Skipped: zipcode={zipcode}, state={state}, city={city}  (missing value)")
@@ -93,11 +93,18 @@ def main():
             print(f"Skipped {skipped} rows due to null city/state/zipcode.")
 
             # 2. ---Insert into hospital---
+            # get all hospitals in database
+            cursor.execute(
+                "SELECT hospital_pk FROM hospital",
+            )
+            db_hospital_pks = [row[0] for row in cursor.fetchall()]
             # each hospital_pk should appear once
             hosp_df = data[['hospital_pk', 'hospital_name', 'address',
                             'longitude', 'latitude', 'fips_code', 'zip']].drop_duplicates(subset=['hospital_pk'])
+            # INSERT new hospitals
+            insert_hosp_df = hosp_df[~hosp_df['hospital_pk'].isin(db_hospital_pks)]
             hosp_rows = []
-            for _, r in hosp_df.iterrows():
+            for _, r in insert_hosp_df.iterrows():
                 hospital_pk = r['hospital_pk']
                 hospital_name = r['hospital_name']
                 address = r['address']
@@ -116,7 +123,29 @@ def main():
                 """, hosp_rows
             )
             print(f"Inserted {len(hosp_rows)} rows into hospital.")
+            # existing hospitals to update
+            update_hosp_df = hosp_df[hosp_df['hospital_pk'].isin(db_hospital_pks)]
+            hosp_rows = []
+            for _, r in update_hosp_df.iterrows():
+                hospital_pk = r['hospital_pk']
+                hospital_name = r['hospital_name']
+                address = r['address']
+                longitude = r['longitude']
+                latitude = r['latitude']
+                fips_code = r['fips_code']
+                zipcode = r['zip']
 
+                hosp_rows.append((hospital_name, address,
+                                  longitude, latitude, fips_code, zipcode, hospital_pk))
+            cursor.executemany(
+                """
+                UPDATE hospital
+                SET hospital_name = %s, address = %s, longitude = %s, 
+                latitude = %s, fips_code = %s, zipcode = %s
+                WHERE hospital_pk = %s
+                """, hosp_rows
+            )
+            print(f"Updated {len(hosp_rows)} rows in hospital.")
             # Build hospital metadata lookup
             cursor.execute(
                 """
