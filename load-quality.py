@@ -132,7 +132,17 @@ def main():
             )
             print(f"Inserted {len(hosp_rows)} rows into hospital.")
             # existing hospitals to update
+            cursor.execute(
+                "SELECT hospital_pk, hospital_name, address, zipcode FROM hospital"
+            )
+            db_hospital = pd.DataFrame(cursor.fetchall(), columns= ('Facility ID', 'Facility Name', 'Address','ZIP Code'))
             update_hosp_df = hosp_df[hosp_df['Facility ID'].isin(db_hospital_pks)]
+            db_hospital = db_hospital[db_hospital['Facility ID'].isin(update_hosp_df['Facility ID'])]
+            db_hospital = db_hospital.sort_values('Facility ID').reset_index(drop=True)
+            update_hosp_df = update_hosp_df.sort_values('Facility ID').reset_index(drop=True)
+            db_hospital = db_hospital[update_hosp_df.columns]
+            rows_different = (update_hosp_df != db_hospital).any(axis=1)
+            update_hosp_df = update_hosp_df[rows_different]
             hosp_rows = []
             for _, r in update_hosp_df.iterrows():
                 hospital_pk = r['Facility ID']
