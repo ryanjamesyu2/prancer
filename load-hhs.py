@@ -2,6 +2,7 @@
 import sys
 from utils import load_data, preprocess_hhs
 import psycopg
+import credentials
 import pandas as pd
 
 # Driver code to load data
@@ -41,7 +42,7 @@ except Exception as e:
 def get_connection():
     return psycopg.connect(
         host="debprodserver.postgres.database.azure.com",
-        dbname="qianruiw", user="qianruiw", password="nuuOItcGAE")
+        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
 
 
 def fmt_hospital(hpk, info):
@@ -58,9 +59,16 @@ def main():
     try:
         with conn.transaction():
 
+            # get all zipcodes
+            cursor.execute(
+                "SELECT zipcode FROM locations",
+            )
+            db_zipcodes = [row[0] for row in cursor.fetchall()]
             # 1. ---Insert into locations---
             # drop duplicate (zip,state,city) combos to avoid redundant inserts
             loc_df = data[['zip', 'state', 'city']].drop_duplicates()
+            # remove zipcodes already in database
+            loc_df = loc_df[~loc_df['zip'].isin(db_zipcodes)]
             loc_rows = []
             skipped = 0
             for _, r in loc_df.iterrows():
@@ -81,15 +89,22 @@ def main():
                 ON CONFLICT (zipcode) DO NOTHING
                 """, loc_rows
             )
-            print(f"Inserted {len(loc_rows)} rows into locations.")
+            print(f"Inserted {len(loc_rows)} new rows into locations.")
             print(f"Skipped {skipped} rows due to null city/state/zipcode.")
 
             # 2. ---Insert into hospital---
+            # get all hospitals in database
+            cursor.execute(
+                "SELECT hospital_pk FROM hospital",
+            )
+            db_hospital_pks = [row[0] for row in cursor.fetchall()]
             # each hospital_pk should appear once
             hosp_df = data[['hospital_pk', 'hospital_name', 'address',
                             'longitude', 'latitude', 'fips_code', 'zip']].drop_duplicates(subset=['hospital_pk'])
+            # INSERT new hospitals
+            insert_hosp_df = hosp_df[~hosp_df['hospital_pk'].isin(db_hospital_pks)]
             hosp_rows = []
-            for _, r in hosp_df.iterrows():
+            for _, r in insert_hosp_df.iterrows():
                 hospital_pk = r['hospital_pk']
                 hospital_name = r['hospital_name']
                 address = r['address']
@@ -108,7 +123,40 @@ def main():
                 """, hosp_rows
             )
             print(f"Inserted {len(hosp_rows)} rows into hospital.")
+            # existing hospitals to update
+            cursor.execute(
+                "SELECT hospital_pk, hospital_name, address, longitude, latitude, fips_code, zipcode FROM hospital"
+            )
+            db_hospital = pd.DataFrame(cursor.fetchall(), columns= ('hospital_pk', 'hospital_name', 'address',
+                            'longitude', 'latitude', 'fips_code', 'zip'))
+            update_hosp_df = hosp_df[hosp_df['hospital_pk'].isin(db_hospital_pks)]
+            db_hospital = db_hospital[db_hospital['hospital_pk'].isin(update_hosp_df['hospital_pk'])]
+            db_hospital = db_hospital.sort_values('hospital_pk').reset_index(drop=True)
+            update_hosp_df = update_hosp_df.sort_values('hospital_pk').reset_index(drop=True)
+            db_hospital = db_hospital[update_hosp_df.columns]
+            rows_different = (update_hosp_df != db_hospital).any(axis=1)
+            update_hosp_df = update_hosp_df[rows_different]
+            hosp_rows = []
+            for _, r in update_hosp_df.iterrows():
+                hospital_pk = r['hospital_pk']
+                hospital_name = r['hospital_name']
+                address = r['address']
+                longitude = r['longitude']
+                latitude = r['latitude']
+                fips_code = r['fips_code']
+                zipcode = r['zip']
 
+                hosp_rows.append((hospital_name, address,
+                                  longitude, latitude, fips_code, zipcode, hospital_pk))
+            cursor.executemany(
+                """
+                UPDATE hospital
+                SET hospital_name = %s, address = %s, longitude = %s, 
+                latitude = %s, fips_code = %s, zipcode = %s
+                WHERE hospital_pk = %s
+                """, hosp_rows
+            )
+            print(f"Updated {len(hosp_rows)} rows in hospital.")
             # Build hospital metadata lookup
             cursor.execute(
                 """
