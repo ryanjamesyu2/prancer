@@ -29,6 +29,7 @@ csv_file = sys.argv[2]
 
 try:
     data = load_data(csv_file, cols)
+    loaded = len(data)
 except Exception as e:
     print("Error loading quality data:", e)
 
@@ -54,12 +55,13 @@ def main():
 
     try:
         with conn.transaction():
+            # 1. ---Insert and update locations table---
+            loc_rows, skipped = update_locations_table(cursor, data)
 
-            # 1. ---Insert and update hospital tables---
-            update_hospitals_table(cursor, data)
-
-            # 2. ---Insert and update locations table---
-            update_locations_table(cursor, data, is_quality_data=True)
+            # 2. ---Insert and update hospital tables---
+            hosp_insert, hosp_update = update_hospitals_table(
+                cursor, data, is_quality_data=True
+            )
 
             # 3. ---Insert into hospital_quality---
             quality_rows = []
@@ -93,7 +95,14 @@ def main():
                 VALUES (%s, %s, %s, %s, %s, %s);
                 """, quality_rows,
             )
-            print(f"Inserted {len(quality_rows)} rows into hospital_quality.")
+            print("\nSummary:")
+            print(f"Loaded {loaded} rows from the provided .CSV file.")
+            print(f"Inserted {loc_rows} new rows into locations.")
+            print(f"Skipped {skipped} rows due to null city/state/zipcode.")
+            print(f"Inserted {hosp_insert} rows into hospital.")
+            print(f"Updated {hosp_update} rows in hospital.")
+            print(f"Inserted {len(quality_rows)} rows into hospital_quality.\n"
+                  )
             print(
                 f"Skipped {skipped_missing_hospital} "
                 "rows due to missing hospitals."

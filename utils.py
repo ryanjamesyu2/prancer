@@ -117,6 +117,16 @@ def preprocess_quality(data, filepath):
     z = [s.rjust(5, '0') if s and len(s) < 5 else s for s in data['ZIP Code']]
     data['ZIP Code'] = z
 
+    # change column names to match HHS data
+    data = data.rename(columns={
+        'Facility ID': 'hospital_pk',
+        'Facility Name': 'hospital_name',
+        'Address': 'address',
+        'City': 'city',
+        'State': 'state',
+        'ZIP Code': 'zip'}
+    )
+
     return data
 
 
