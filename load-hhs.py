@@ -74,66 +74,101 @@ def main():
             bad_rows = 0
             for _, r in data.iterrows():
                 collection_week = r['collection_week']
-                adult_beds_available_avg = r['all_adult_hospital_beds_7_day_avg']
-                pediatric_beds_available_avg = r['all_pediatric_inpatient_beds_7_day_avg']
-                adult_beds_occupied_avg = r['all_adult_hospital_inpatient_bed_occupied_7_day_avg']
-                pediatric_beds_occupied_avg = r['all_pediatric_inpatient_bed_occupied_7_day_avg']
+                adult_beds_available_avg = r[
+                    'all_adult_hospital_beds_7_day_avg'
+                ]
+                pediatric_beds_available_avg = r[
+                    'all_pediatric_inpatient_beds_7_day_avg'
+                ]
+                adult_beds_occupied_avg = r[
+                    'all_adult_hospital_inpatient_bed_occupied_7_day_avg'
+                ]
+                pediatric_beds_occupied_avg = r[
+                    'all_pediatric_inpatient_bed_occupied_7_day_avg'
+                ]
                 icu_beds_available_avg = r['total_icu_beds_7_day_avg']
                 icu_beds_occupied_avg = r['icu_beds_used_7_day_avg']
-                confirmed_covid_hospitalized_avg = r['inpatient_beds_used_covid_7_day_avg']
-                confirmed_covid_icu_avg = r['staffed_icu_adult_patients_confirmed_covid_7_day_avg']
+                confirmed_covid_hospitalized_avg = r[
+                    'inpatient_beds_used_covid_7_day_avg'
+                ]
+                confirmed_covid_icu_avg = r[
+                    'staffed_icu_adult_patients_confirmed_covid_7_day_avg'
+                ]
                 hospital_pk = r['hospital_pk']
 
                 # ICU
-                if (icu_beds_available_avg is not None and
-                    icu_beds_occupied_avg is not None and
-                    icu_beds_occupied_avg > icu_beds_available_avg):
-
-                    print(f"[SKIP] ICU occupied > available for {fmt_hospital(hospital_pk, hospital_info)} "
-                          f"({icu_beds_occupied_avg} > {icu_beds_available_avg})")
+                if (
+                    icu_beds_available_avg is not None
+                    and icu_beds_occupied_avg is not None
+                    and icu_beds_occupied_avg > icu_beds_available_avg
+                ):
+                    print(
+                        f"[SKIP] ICU occupied > available for "
+                        f"{fmt_hospital(hospital_pk, hospital_info)} "
+                        f"({icu_beds_occupied_avg} > {icu_beds_available_avg})"
+                    )
                     bad_rows += 1
                     continue
 
                 # Adult
-                if (adult_beds_available_avg is not None and
-                    adult_beds_occupied_avg is not None and
-                    adult_beds_occupied_avg > adult_beds_available_avg):
-
-                    print(f"[SKIP] Adult beds occupied > available for {fmt_hospital(hospital_pk, hospital_info)} "
-                          f"({adult_beds_occupied_avg} > {adult_beds_available_avg})")
+                if (
+                    adult_beds_available_avg is not None
+                    and adult_beds_occupied_avg is not None
+                    and adult_beds_occupied_avg > adult_beds_available_avg
+                ):
+                    print(
+                        f"[SKIP] Adult beds occupied > available for "
+                        f"{fmt_hospital(hospital_pk, hospital_info)} "
+                        f"({adult_beds_occupied_avg} > "
+                        f"{adult_beds_available_avg})"
+                    )
                     bad_rows += 1
                     continue
 
                 # Pediatric
-                if (pediatric_beds_available_avg is not None and
-                    pediatric_beds_occupied_avg is not None and
-                    pediatric_beds_occupied_avg > pediatric_beds_available_avg):
-
-                    print(f"[SKIP] Pediatric beds occupied > available for {fmt_hospital(hospital_pk, hospital_info)} "
-                          f"({pediatric_beds_occupied_avg} > {pediatric_beds_available_avg})")
+                if (
+                    pediatric_beds_available_avg is not None
+                    and pediatric_beds_occupied_avg is not None
+                    and pediatric_beds_occupied_avg
+                        > pediatric_beds_available_avg
+                ):
+                    print(
+                        f"[SKIP] Pediatric beds occupied > available for "
+                        f"{fmt_hospital(hospital_pk, hospital_info)} "
+                        f"({pediatric_beds_occupied_avg} > "
+                        f"{pediatric_beds_available_avg})"
+                    )
                     bad_rows += 1
                     continue
 
                 # COVID ICU > COVID hospitalized
-                if (confirmed_covid_hospitalized_avg is not None and
-                    confirmed_covid_icu_avg is not None and
-                    confirmed_covid_icu_avg > confirmed_covid_hospitalized_avg):
-
-                    print(f"[SKIP] COVID ICU > COVID hospitalized for {fmt_hospital(hospital_pk, hospital_info)} "
-                          f"({confirmed_covid_icu_avg} > {confirmed_covid_hospitalized_avg})")
+                if (
+                    confirmed_covid_hospitalized_avg is not None
+                    and confirmed_covid_icu_avg is not None
+                    and confirmed_covid_icu_avg
+                        > confirmed_covid_hospitalized_avg
+                ):
+                    print(
+                        f"[SKIP] COVID ICU > COVID hospitalized for "
+                        f"{fmt_hospital(hospital_pk, hospital_info)} "
+                        f"({confirmed_covid_icu_avg} > "
+                        f"{confirmed_covid_hospitalized_avg})"
+                    )
                     bad_rows += 1
                     continue
 
-                weekly_rows.append((collection_week,
-                                    adult_beds_available_avg,
-                                    pediatric_beds_available_avg,
-                                    adult_beds_occupied_avg,
-                                    pediatric_beds_occupied_avg,
-                                    icu_beds_available_avg,
-                                    icu_beds_occupied_avg,
-                                    confirmed_covid_hospitalized_avg,
-                                    confirmed_covid_icu_avg,
-                                    hospital_pk))
+                weekly_rows.append((
+                    collection_week,
+                    adult_beds_available_avg,
+                    pediatric_beds_available_avg,
+                    adult_beds_occupied_avg,
+                    pediatric_beds_occupied_avg,
+                    icu_beds_available_avg,
+                    icu_beds_occupied_avg,
+                    confirmed_covid_hospitalized_avg,
+                    confirmed_covid_icu_avg,
+                    hospital_pk
+                ))
             cursor.executemany(
                 """
                 INSERT INTO weekly_logs (
