@@ -1,8 +1,10 @@
 # Python script to load the hospital quality data set
 import sys
-from utils import load_data, preprocess_quality, get_connection, parse_emergency
-import psycopg
-import pandas as pd
+from utils import (
+    load_data,
+    preprocess_quality,
+    get_connection,
+    parse_emergency)
 from updateTables import update_hospitals_table, update_locations_table
 from datetime import datetime
 
@@ -52,26 +54,31 @@ def main():
 
     try:
         with conn.transaction():
-            
+
             # 1. ---Insert and update hospital tables---
             update_hospitals_table(cursor, data)
 
             # 2. ---Insert and update locations table---
-            update_locations_table(cursor, data, is_quality_data = True)
-            
+            update_locations_table(cursor, data, is_quality_data=True)
+
             # 3. ---Insert into hospital_quality---
             quality_rows = []
             skipped_missing_hospital = 0
             for _, r in data.iterrows():
                 # Normalize quality rating to ENUM
                 raw_q = str(r['Hospital overall rating']).strip()
-                quality_rating = raw_q if raw_q in {'1', '2', '3', '4', '5'} else "Not Available"
+                valid_ratings = {'1', '2', '3', '4', '5'}
+                quality_rating = (
+                    raw_q if raw_q in valid_ratings else "Not Available"
+                )
+
                 hosp_type = r['Hospital Type']
                 ownership = r['Hospital Ownership']
                 emergency = parse_emergency(r["Emergency Services"])
                 hospital_pk = r['hospital_pk']
 
-                quality_rows.append((quality_rating, date_updated, hosp_type, ownership, emergency, hospital_pk))
+                quality_rows.append((quality_rating, date_updated, hosp_type,
+                                     ownership, emergency, hospital_pk))
 
             cursor.executemany(
                 """
@@ -87,7 +94,8 @@ def main():
                 """, quality_rows,
             )
             print(f"Inserted {len(quality_rows)} rows into hospital_quality.")
-            print(f"Skipped {skipped_missing_hospital} rows due to missing hospitals.")
+            print(f"Skipped {skipped_missing_hospital} "
+                  "rows due to missing hospitals.")
 
     except Exception as e:
         print("Error inserting data", e)
