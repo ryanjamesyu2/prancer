@@ -68,7 +68,9 @@ def main():
                 # Normalize quality rating to ENUM
                 raw_q = str(r['Hospital overall rating']).strip()
                 valid_ratings = {'1', '2', '3', '4', '5'}
-                quality_rating = raw_q if raw_q in valid_ratings else "Not Available"
+                quality_rating = (
+                    raw_q if raw_q in valid_ratings else "Not Available"
+                )
 
                 hosp_type = r['Hospital Type']
                 ownership = r['Hospital Ownership']
@@ -92,7 +94,10 @@ def main():
                 """, quality_rows,
             )
             print(f"Inserted {len(quality_rows)} rows into hospital_quality.")
-            print(f"Skipped {skipped_missing_hospital} rows due to missing hospitals.")
+            print(
+                f"Skipped {skipped_missing_hospital} "
+                "rows due to missing hospitals."
+            )
 
     except Exception as e:
         print("Error inserting data", e)
