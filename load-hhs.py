@@ -21,6 +21,7 @@ cols = [
 
 try:
     data = load_data(sys.argv[1], cols)
+    loaded = len(data)
 except Exception as e:
     print("Error loading HHS data:", e)
 
@@ -43,12 +44,13 @@ def main():
 
     try:
         with conn.transaction():
+            # 1. ---Insert and update locations table---
+            loc_rows, skipped = update_locations_table(cursor, data)
 
-            # 1. ---Insert and update hospital tables---
-            update_hospitals_table(cursor, data)
-
-            # 2. ---Insert and update locations table---
-            update_locations_table(cursor, data, is_quality_data=False)
+            # 2. ---Insert and update hospital tables---
+            hosp_insert, hosp_update = update_hospitals_table(
+                cursor, data, is_quality_data=False
+            )
 
             # 3. ---Insert into weekly_logs---
             # Build hospital metadata lookup
@@ -186,7 +188,13 @@ def main():
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                 """, weekly_rows
             )
-            print(f"Inserted {len(weekly_rows)} rows into weekly_logs. "
+            print("\nSummary:")
+            print(f"Loaded {loaded} rows from the provided .CSV file.")
+            print(f"Inserted {loc_rows} new rows into locations.")
+            print(f"Skipped {skipped} rows due to null city/state/zipcode.")
+            print(f"Inserted {hosp_insert} rows into hospital.")
+            print(f"Updated {hosp_update} rows in hospital.")
+            print(f"Inserted {len(weekly_rows)} rows into weekly_logs.\n"
                   f"Skipped {bad_rows} inconsistent rows.")
 
     except Exception as e:
