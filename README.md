@@ -1,8 +1,8 @@
 # Project Prancer
-An ETL and reporting pipeline for HHS and Quality hospital data. The pipeline can be broadly broken down into 3 parts: schema, loading, and reporting. These parts are detailed in later sections. To run the code, use the virtual environment provided in the `[filename].yml` file in the repository. You can create the environment by running the following command:
+An ETL and reporting pipeline for HHS and Quality hospital data. The pipeline can be broadly broken down into 3 parts: schema, loading, and reporting. These parts are detailed in later sections. To run the code, use the `prancer_env` virtual environment provided in the `env.yml` file. You can create the environment by running the following command:
 
 ```
-conda env create -f [filename].yml
+conda env create -f env.yml
 ```
 
 ## Part 1 - Schema
@@ -14,11 +14,16 @@ The database schema can be found in the `create_database.sql` file. We utilize 4
 * **Hospital Quality** - stores the overall hospital quality score assigned to hospitals at various dates. Each row is one quality rating for one hospital.
 * **Location** - stores geographic information used to identify and locate hospitals. Each row is one ZIP code.
 
-To create the database, connect to your desired database server in a python script or Jupyter notebook, and then sequentially run the code cells in `project_part_one.ipynb`
+To create the database, connect to your desired database server in a python script or Jupyter notebook, and then sequentially run the code cells in `create_database.sql` script. The rationale behind our schema design decisions can be found in `project_part_one.ipynb`, though you will not need to run the code cells in the notebook.
 
-## Part 2 - Populating the Database
+## Part 2 - Loading Data
 
-There are two main python scripts used to load information from local .CSV files into the database tables. These are `load-hhs.py` and `load-quality.py`. These scripts utilize helper functions defined in `utils.py`
+There are two main python scripts used to load information from local .CSV files into the database tables. These are `load-hhs.py` and `load-quality.py`. These scripts utilize helper functions defined in `utils.py`. Both main loading scripts require a local `credentials.py` module containing login information to the database you are trying to access. This is not provided in the repository, and each person needs to make their own version of the module with their own personal login information. The `credentials.py` file should look like the following, removing the brackets and replacing with your own information:
+
+```
+DB_USER = "[username]"
+DB_PASSWORD = "[password]"
+```
 
 ### Loading HHS Data
 
@@ -52,7 +57,7 @@ This script also follows a similar logic as `load-hhs.py`. It loads the data fro
 
 Before adding any new rows to the `hospital_quality` table, we must go through a similar process to loading the HHS data to update the `location` and `hospital` tables. After doing so, we iterate through each row in the Quality data set, convert the overall hospital quality rating to the enumerated data type defined in the schema, and then insert the row. However, if the hospital information is missing, we skip the row, again keeping track of how many rows were inserted and how many rows were skipped.
 
-## Reporting
+## Part 3 - Reporting
 
 The last stage of the pipeline is generating reports.
 
