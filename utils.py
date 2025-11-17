@@ -121,12 +121,39 @@ def preprocess_quality(data, filepath):
 
 
 def get_connection():
+    """Create and return a connection to the PostgreSQL database
+
+    This function uses secure credentials stored in the credentials module
+
+    Returns
+    -------
+        psycopg.Connextion
+            An open database connection object
+    """
     return psycopg.connect(
         host="debprodserver.postgres.database.azure.com",
-        dbname=credentials.DB_USER, user=credentials.DB_USER, password=credentials.DB_PASSWORD)
+        dbname=credentials.DB_USER,
+        user=credentials.DB_USER,
+        password=credentials.DB_PASSWORD)
 
 
 def parse_emergency(value):
+    """Parse an emergency indicator value into a boolean
+
+    This function converts strings such as 'Yes/No' (case-insensitive)
+    into True or False. Any unrecognized or missing value is mapped to None
+
+    Parameters
+    ----------
+    value : Any
+        A value representing whether a hospital offers emergency services
+
+    Returns
+    -------
+    bool or None
+        True if the input denotes emergency service availability,
+        False if not, and None if the value is missing or invalid
+    """
     if value is None:
         return None
     s = str(value).strip().lower()
@@ -139,7 +166,31 @@ def parse_emergency(value):
 
 
 def fmt_hospital(hpk, info):
+    """Format a hospital's metada into a readable string
+
+    This helper function is used when inserting weekly HHS data.
+    If a row fails a data consistency check, this helper returns information
+    for the affected hospital.
+
+    Parameters
+    ----------
+    hpk : int or str
+        Primary key of the hospital
+    info : dict
+        A dictionary mapping hospital primary keys to metadata entries
+
+    Returns
+    -------
+    str
+        A formatted string containing hospital name, address, city/state/zip,
+        and primary key
+    """
     if hpk not in info:
         return f"[unknown hospital pk={hpk}]"
     x = info[hpk]
-    return (f"{x['name']} | {x['address']} | {x['city']}, {x['state']} {x['zip']} | pk={hpk}")
+    return (
+        f"{x['name']} | "
+        f"{x['address']} | "
+        f"{x['city']}, {x['state']} {x['zip']} | "
+        f"pk={hpk}"
+    )
