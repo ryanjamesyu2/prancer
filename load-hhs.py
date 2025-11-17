@@ -1,10 +1,7 @@
 # Python script to load the HHS data set
 import sys
 from utils import load_data, preprocess_hhs, get_connection, fmt_hospital
-import psycopg
 from updateTables import update_hospitals_table, update_locations_table
-import credentials
-import pandas as pd
 
 # Driver code to load data
 
@@ -40,7 +37,6 @@ except Exception as e:
 # Driver code to update hospital table if necessary
 
 
-
 def main():
     conn = get_connection()
     cursor = conn.cursor()
@@ -52,13 +48,14 @@ def main():
             update_hospitals_table(cursor, data)
 
             # 2. ---Insert and update locations table---
-            update_locations_table(cursor, data, is_quality_data = False)
+            update_locations_table(cursor, data, is_quality_data=False)
 
             # 3. ---Insert into weekly_logs---
             # Build hospital metadata lookup
             cursor.execute(
                 """
-                SELECT h.hospital_pk, h.hospital_name, h.address, l.city, l.state, l.zipcode
+                SELECT h.hospital_pk, h.hospital_name, h.address,
+                       l.city, l.state, l.zipcode
                 FROM hospital h
                 JOIN locations l ON h.zipcode = l.zipcode
                 """
@@ -127,10 +124,16 @@ def main():
                     bad_rows += 1
                     continue
 
-                weekly_rows.append((collection_week, adult_beds_available_avg, pediatric_beds_available_avg,
-                                    adult_beds_occupied_avg, pediatric_beds_occupied_avg, icu_beds_available_avg,
-                                    icu_beds_occupied_avg, confirmed_covid_hospitalized_avg,
-                                    confirmed_covid_icu_avg, hospital_pk))
+                weekly_rows.append((collection_week,
+                                    adult_beds_available_avg,
+                                    pediatric_beds_available_avg,
+                                    adult_beds_occupied_avg,
+                                    pediatric_beds_occupied_avg,
+                                    icu_beds_available_avg,
+                                    icu_beds_occupied_avg,
+                                    confirmed_covid_hospitalized_avg,
+                                    confirmed_covid_icu_avg,
+                                    hospital_pk))
             cursor.executemany(
                 """
                 INSERT INTO weekly_logs (
@@ -148,7 +151,8 @@ def main():
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                 """, weekly_rows
             )
-            print(f"Inserted {len(weekly_rows)} rows into weekly_logs. Skipped {bad_rows} inconsistent rows.")
+            print(f"Inserted {len(weekly_rows)} rows into weekly_logs. "
+                  f"Skipped {bad_rows} inconsistent rows.")
 
     except Exception as e:
         print("Error inserting data", e)
