@@ -21,7 +21,6 @@ CREATE TABLE hospital (
 );
 
 CREATE TABLE weekly_logs (
-    id SERIAL PRIMARY KEY,
     collection_week DATE NOT NULL,
     adult_beds_available_avg FLOAT8 CHECK (adult_beds_available_avg >=0),
     pediatric_beds_available_avg FLOAT8 CHECK (pediatric_beds_available_avg >=0),
@@ -32,6 +31,7 @@ CREATE TABLE weekly_logs (
     confirmed_covid_hospitalized_avg FLOAT8 CHECK (confirmed_covid_hospitalized_avg >=0),
     confirmed_covid_icu_avg FLOAT8 CHECK (confirmed_covid_icu_avg >=0),
     hospital_pk TEXT NOT NULL REFERENCES hospital(hospital_pk),
+    PRIMARY KEY (hospital_pk, collection_week),
     CHECK(adult_beds_occupied_avg <= adult_beds_available_avg),
     CHECK(pediatric_beds_occupied_avg <= pediatric_beds_available_avg),
     CHECK(icu_beds_occupied_avg <= icu_beds_available_avg),
@@ -41,11 +41,11 @@ CREATE TABLE weekly_logs (
 CREATE TYPE quality AS ENUM ('1', '2', '3', '4', '5', 'Not Available');
 
 CREATE TABLE hospital_quality (
-    id SERIAL PRIMARY KEY,
     quality_rating quality NOT NULL,
     date_updated DATE NOT NULL,
     type_of_hospital TEXT,
     type_of_ownership TEXT,
     emergency_services BOOLEAN,
-    hospital_pk TEXT NOT NULL REFERENCES hospital(hospital_pk)
+    hospital_pk TEXT NOT NULL REFERENCES hospital(hospital_pk),
+    PRIMARY KEY (hospital_pk, date_updated)
 );
