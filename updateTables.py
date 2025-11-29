@@ -21,8 +21,8 @@ def update_locations_table(cursor, data):
 
         if pd.isna(zipcode) or pd.isna(state) or pd.isna(city):
             skipped_rows.append(
-                (f"Skipped: zipcode={zipcode}, state={state}, city={city} "
-                 "(missing value)")
+                (f"Skipped row {i+1}: zipcode={zipcode}, state={state}, "
+                 f"city={city} (missing value)")
             )
             continue
 

@@ -79,7 +79,7 @@ def main():
                 }
             weekly_rows = []
             bad_rows = []
-            for _, r in data.iterrows():
+            for i, r in data.iterrows():
                 collection_week = r['collection_week']
                 adult_beds_available_avg = r[
                     'all_adult_hospital_beds_7_day_avg'
@@ -110,7 +110,7 @@ def main():
                     and icu_beds_occupied_avg > icu_beds_available_avg
                 ):
                     bad_rows.append(
-                        (f"[SKIP] ICU occupied > available for "
+                        (f"[SKIP ROW {i+1}] ICU occupied > available for "
                          f"{fmt_hospital(hospital_pk, hospital_info)} "
                          f"({icu_beds_occupied_avg} > "
                          f"{icu_beds_available_avg})")
@@ -124,7 +124,8 @@ def main():
                     and adult_beds_occupied_avg > adult_beds_available_avg
                 ):
                     bad_rows.append(
-                        (f"[SKIP] Adult beds occupied > available for "
+                        (f"[SKIP ROW {i+1}] Adult beds occupied > "
+                         f"available for "
                          f"{fmt_hospital(hospital_pk, hospital_info)} "
                          f"({adult_beds_occupied_avg} > "
                          f"{adult_beds_available_avg})")
@@ -139,7 +140,8 @@ def main():
                         > pediatric_beds_available_avg
                 ):
                     bad_rows.append(
-                        (f"[SKIP] Pediatric beds occupied > available for "
+                        (f"[SKIP ROW {i+1}] Pediatric beds occupied > "
+                         f"available for "
                          f"{fmt_hospital(hospital_pk, hospital_info)} "
                          f"({pediatric_beds_occupied_avg} > "
                          f"{pediatric_beds_available_avg})")
@@ -154,8 +156,8 @@ def main():
                         > confirmed_covid_hospitalized_avg
                 ):
                     bad_rows.append(
-                        (f"[SKIP] COVID ICU > COVID hospitalized for "
-                         f"{fmt_hospital(hospital_pk, hospital_info)} "
+                        (f"[SKIP ROW {i+1}] COVID ICU > COVID hospitalized for"
+                         f" {fmt_hospital(hospital_pk, hospital_info)} "
                          f"({confirmed_covid_icu_avg} > "
                          f"{confirmed_covid_hospitalized_avg})")
                     )
