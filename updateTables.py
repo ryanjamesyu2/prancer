@@ -13,16 +13,17 @@ def update_locations_table(cursor, data):
     # remove zipcodes already in database
     loc_df = loc_df[~loc_df['zip'].isin(db_zipcodes)]
     loc_rows = []
-    skipped = 0
-    for _, r in loc_df.iterrows():
+    skipped_rows = []
+    for i, r in loc_df.iterrows():
         zipcode = r['zip']
         state = r['state']
         city = r['city']
 
         if pd.isna(zipcode) or pd.isna(state) or pd.isna(city):
-            print(f"Skipped: zipcode={zipcode}, state={state}, city={city}",
-                  "(missing value)", sep=" ")
-            skipped += 1
+            skipped_rows.append(
+                (f"Skipped row {i+1}: zipcode={zipcode}, state={state}, "
+                 f"city={city} (missing value)")
+            )
             continue
 
         loc_rows.append((zipcode, state, city))
@@ -33,7 +34,7 @@ def update_locations_table(cursor, data):
         ON CONFLICT (zipcode) DO NOTHING
         """, loc_rows
     )
-    return len(loc_rows), skipped
+    return len(loc_rows), skipped_rows
 
 
 def update_hospitals_table(cursor, data, is_quality_data):

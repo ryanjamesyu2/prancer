@@ -4,7 +4,8 @@ from utils import (
     load_data,
     preprocess_quality,
     get_connection,
-    parse_emergency)
+    parse_emergency,
+    createErrorLog)
 from updateTables import update_hospitals_table, update_locations_table
 from datetime import datetime
 
@@ -95,10 +96,15 @@ def main():
                 VALUES (%s, %s, %s, %s, %s, %s);
                 """, quality_rows,
             )
+
+            createErrorLog(skipped, "quality")
+
             print("\nSummary:")
             print(f"Loaded {loaded} rows from the provided .CSV file.")
             print(f"Inserted {loc_rows} new rows into locations.")
-            print(f"Skipped {skipped} rows due to null city/state/zipcode.")
+            print(
+                f"Skipped {len(skipped)} rows due to null city/state/zipcode."
+            )
             print(f"Inserted {hosp_insert} rows into hospital.")
             print(f"Updated {hosp_update} rows in hospital.")
             print(f"Inserted {len(quality_rows)} rows into hospital_quality.\n"

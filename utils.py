@@ -204,3 +204,26 @@ def fmt_hospital(hpk, info):
         f"{x['city']}, {x['state']} {x['zip']} | "
         f"pk={hpk}"
     )
+
+
+def createErrorLog(errors, data_source):
+    """Creates an error log .txt file from loading data
+
+    Parameters
+    ----------
+    errors : list
+        A list of the error messages to be written
+    data_source : str
+        Either 'hhs' or 'quality', depending on the source of the data being
+        loaded
+    """
+
+    if len(errors) == 0:
+        return
+
+    time = datetime.now()
+    filename = data_source + "ErrorLog_" + time.strftime("%Y-%m-%d:%H:%M:%S")
+    with open('errorLogs/' + filename + '.txt', 'w') as f:
+        for line in errors:
+            f.write(line + '\n')
+        f.close()
