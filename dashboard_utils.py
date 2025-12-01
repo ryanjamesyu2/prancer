@@ -15,7 +15,8 @@ def get_connection():
 def run_query(sql, params):
     conn = get_connection()
     try:
-        df = pd.read_sql(sql, conn, params=params)
+        df = pd.read_sql(sql, con=conn, params=params)
     finally:
-        conn.close()
+        # conn.close()
+        pass
     return df

@@ -67,34 +67,42 @@ hospital_fraction AS (
         wl.collection_week,
         lq.quality_rating,
         lq.date_updated,
-        (wl.adult_beds_occupied_avg + wl.pediatric_beds_occupied_avg)
-        / NULLIF(wl.adult_beds_available_avg + wl.pediatric_beds_available_avg, 0) AS fraction_used
+        wl.adult_beds_occupied_avg
+        / NULLIF(wl.adult_beds_available_avg, 0) AS adult_fraction_used,
+        wl.pediatric_beds_occupied_avg
+        / NULLIF(wl.pediatric_beds_available_avg, 0) AS pediatric_fraction_used,
+        wl.icu_beds_occupied_avg
+        / NULLIF(wl.icu_beds_available_avg, 0) AS icu_fraction_used,
+        (wl.adult_beds_occupied_avg + wl.pediatric_beds_occupied_avg + wl.icu_beds_occupied_avg)
+        / NULLIF(wl.adult_beds_available_avg + wl.pediatric_beds_available_avg + wl.icu_beds_available_avg, 0) AS fraction_used
     FROM weekly_logs wl
     JOIN hospital h ON wl.hospital_pk = h.hospital_pk
     JOIN locations l ON h.zipcode = l.zipcode
     JOIN latest_quality lq ON wl.hospital_pk = lq.hospital_pk
-    WHERE wl.collection_week = %s
+    WHERE wl.collection_week = %(week)s
 )
 SELECT
-    state,
     quality_rating,
-    AVG(fraction_used) AS avg_fraction_used,
+    AVG(adult_fraction_used) AS adult,
+    AVG(pediatric_fraction_used) AS pediatric,
+    AVG(icu_fraction_used) AS icu,
+    AVG(fraction_used) AS total,
     COUNT(*) AS num_hospitals
 FROM hospital_fraction
-GROUP BY state, quality_rating
-ORDER BY state, quality_rating
+GROUP BY quality_rating
+ORDER BY quality_rating
 """
 
 # 4
 beds_used_over_time = """
 SELECT
     wl.collection_week,
-    SUM(wl.adult_beds_occupied_avg + wl.pediatric_beds_occupied_avg) AS all_beds_used,
-    SUM(wl.confirmed_covid_hospitalized_avg) AS covid_beds_used
+    SUM(wl.adult_beds_occupied_avg + wl.pediatric_beds_occupied_avg + wl.icu_beds_occupied_avg) AS all,
+    SUM(wl.confirmed_covid_hospitalized_avg) AS covid
 FROM weekly_logs wl
-WHERE wl.collection_week <= %s
 JOIN hospital h ON wl.hospital_pk = h.hospital_pk
 JOIN locations l ON h.zipcode = l.zipcode
+WHERE wl.collection_week <= %(week)s
 GROUP BY wl.collection_week
 ORDER BY wl.collection_week
 """

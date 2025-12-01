@@ -3,6 +3,7 @@ import dashboard_queries as queries
 import dashboard_utils as utils
 import altair as alt
 import pandas as pd
+import plotly.express as px
 
 
 st.title("HHS Hospital Capacity Weekly Report")
@@ -33,6 +34,81 @@ beds_df = utils.run_query(
     params={"week": selected_week}
 )
 st.dataframe(beds_df, use_container_width=True, hide_index=True)
+
+
+# ----------Plot/Table #3: Beds in use by Quality----------
+st.subheader("Proportion of Beds in Use by Hospital Quality")
+"""
+Proportion of total beds in use, broken down by hospital quality and bed type
+"""
+beds_by_quality = utils.run_query(
+    queries.beds_fraction_by_quality,
+    params={"week": selected_week}
+)
+
+plot3_df = beds_by_quality.melt(
+    id_vars="quality_rating",
+    value_vars=["adult",
+                "pediatric",
+                "icu",
+                "total"],
+    var_name="bed_type",
+    value_name="avg_fraction_used",
+)
+
+chart3 = alt.Chart(plot3_df).mark_bar().encode(
+    x=alt.X('quality_rating', title="Hospital Quality Rating"),
+    xOffset="bed_type",  # ensures bars appear side by side
+    y=alt.Y('avg_fraction_used', title="Fraction of Beds Used"),
+    color=alt.Color('bed_type', title="Bed Type")
+)
+
+st.altair_chart(chart3)
+
+
+# ----------Plot/Table #4: Beds in use over time----------
+st.subheader("Total Hospital Beds Used Per Week Over Time")
+"""
+The total number of beds used per week up to the selected week, along side 
+the number of beds used for COVID patients.
+"""
+beds_over_time = utils.run_query(
+    queries.beds_used_over_time,
+    params={"week": selected_week}
+)
+
+plot4_df = beds_over_time.melt(
+    id_vars="collection_week",
+    value_vars=["all",
+                "covid"],
+    var_name="bed_type",
+    value_name="beds_used",
+)
+
+st.line_chart(plot4_df, x="collection_week", y="beds_used", color="bed_type")
+
+
+# ----------Plot/Table #5: Map of Hospital Quality----------
+st.subheader("Hospital Quality Ratings Across the US")
+"""
+A map showing one dot for a hospital, colored by their latest quality rating.
+"""
+state_quality = utils.run_query(
+    queries.avg_quality_by_state,
+    {}
+)
+
+# st.map(plot5_df, latitude="latitude", longitude="longitude", color="color")
+plot5 = px.choropleth(
+    state_quality,
+    locations='state',
+    locationmode="USA-states",
+    color='avg_quality_rating',
+    scope="usa",
+    color_continuous_scale="Viridis"
+)
+
+st.plotly_chart(plot5)
 
 
 # ----------Plot/Table #7: Beds in use by emergency services----------
