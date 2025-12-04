@@ -81,11 +81,13 @@ plot4_df = beds_over_time.melt(
     id_vars="collection_week",
     value_vars=["all",
                 "covid"],
-    var_name="bed_type",
+    var_name="Bed Type",
     value_name="beds_used",
 )
 
-st.line_chart(plot4_df, x="collection_week", y="beds_used", color="bed_type")
+st.line_chart(plot4_df, x="collection_week", y="beds_used", color="Bed Type",
+              x_label="Week", y_label="Number of Beds Used",
+              )
 
 
 # ----------Plot/Table #5: Map of Hospital Quality----------
@@ -107,6 +109,10 @@ plot5 = px.choropleth(
     scope="usa",
     color_continuous_scale="Viridis"
 )
+
+plot5.update_layout(coloraxis_colorbar=dict(
+    title="Average Quality Rating"
+))
 
 st.plotly_chart(plot5)
 
