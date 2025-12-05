@@ -16,7 +16,9 @@ ORDER BY state;
 
 # 1
 weekly_records_summary = """
-SELECT collection_week as "Collection Week", COUNT(*) AS "Count of Records Loaded"
+SELECT
+    collection_week as "Collection Week",
+    COUNT(*) AS "Count of Records Loaded"
 FROM weekly_logs
 GROUP BY collection_week
 ORDER BY collection_week;
@@ -69,12 +71,20 @@ hospital_fraction AS (
         lq.date_updated,
         wl.adult_beds_occupied_avg
         / NULLIF(wl.adult_beds_available_avg, 0) AS adult_fraction_used,
-        wl.pediatric_beds_occupied_avg
-        / NULLIF(wl.pediatric_beds_available_avg, 0) AS pediatric_fraction_used,
+        (
+            wl.pediatric_beds_occupied_avg
+            / NULLIF(wl.pediatric_beds_available_avg, 0)
+        ) AS pediatric_fraction_used,
         wl.icu_beds_occupied_avg
         / NULLIF(wl.icu_beds_available_avg, 0) AS icu_fraction_used,
-        (wl.adult_beds_occupied_avg + wl.pediatric_beds_occupied_avg + wl.icu_beds_occupied_avg)
-        / NULLIF(wl.adult_beds_available_avg + wl.pediatric_beds_available_avg + wl.icu_beds_available_avg, 0) AS fraction_used
+        (
+            wl.adult_beds_occupied_avg
+            + wl.pediatric_beds_occupied_avg
+            + wl.icu_beds_occupied_avg)
+        / NULLIF(
+            wl.adult_beds_available_avg
+            + wl.pediatric_beds_available_avg
+            + wl.icu_beds_available_avg, 0) AS fraction_used
     FROM weekly_logs wl
     JOIN hospital h ON wl.hospital_pk = h.hospital_pk
     JOIN locations l ON h.zipcode = l.zipcode
@@ -97,7 +107,10 @@ ORDER BY quality_rating
 beds_used_over_time = """
 SELECT
     wl.collection_week,
-    SUM(wl.adult_beds_occupied_avg + wl.pediatric_beds_occupied_avg + wl.icu_beds_occupied_avg) AS all,
+    SUM(
+        wl.adult_beds_occupied_avg
+        + wl.pediatric_beds_occupied_avg
+        + wl.icu_beds_occupied_avg) AS all,
     SUM(wl.confirmed_covid_hospitalized_avg) AS covid
 FROM weekly_logs wl
 JOIN hospital h ON wl.hospital_pk = h.hospital_pk
@@ -116,15 +129,16 @@ WITH latest_quality AS (
     FROM hospital_quality
     ORDER BY hospital_pk, date_updated DESC
 )
-SELECT 
+SELECT
     l.state,
     AVG(
-        CASE 
+        CASE
             WHEN lq.quality_rating = 'Not Available' THEN NULL
             ELSE CAST(CAST(lq.quality_rating AS TEXT) AS INTEGER)
         END
     ) AS avg_quality_rating,
-    COUNT(*) FILTER (WHERE lq.quality_rating != 'Not Available') AS num_hospitals_rated,
+    COUNT(*) FILTER (
+        WHERE lq.quality_rating != 'Not Available') AS num_hospitals_rated,
     COUNT(*) AS total_hospitals
 FROM hospital h
 JOIN locations l ON l.zipcode = h.zipcode
@@ -137,7 +151,7 @@ ORDER BY avg_quality_rating DESC NULLS LAST
 covid_by_ownership = """
 WITH latest_quality AS (
     SELECT DISTINCT ON (hospital_pk)
-        hospital_pk, 
+        hospital_pk,
         type_of_ownership
     FROM hospital_quality
     ORDER BY hospital_pk, date_updated DESC
