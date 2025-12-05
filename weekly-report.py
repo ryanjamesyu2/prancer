@@ -53,6 +53,7 @@ beds_df = utils.run_query(
 st.dataframe(beds_df, use_container_width=True, hide_index=True)
 
 
+st.header("DATA VISUALIZATIONS")
 # ----------Plot/Table #3: Time series of COVID cases----------
 st.subheader("COVID Cases by Type of Hospital Ownership Per Week Over Time")
 """
@@ -71,7 +72,7 @@ st.line_chart(covid_over_time, x="collection_week", y="covid_cases",
               y_label="Number of hospitalized patients with confirmed COVID",
               )
 
-st.header("DATA VISUALIZATIONS")
+
 # ----------Plot/Table #4: Beds in use by Quality----------
 st.subheader("Proportion of Beds in Use by Hospital Quality")
 """
@@ -131,7 +132,8 @@ st.line_chart(plot4_df, x="collection_week", y="beds_used", color="Bed Type",
 # ----------Plot/Table #6: Map of Hospital Quality----------
 st.subheader("Hospital Quality Ratings Across the US")
 """
-A map showing one dot for a hospital, colored by their latest quality rating.
+A map showing the average hospital quality rating by state, indicated by
+the color of the state.
 """
 state_quality = utils.run_query(
     queries.avg_quality_by_state,
