@@ -52,8 +52,6 @@ beds_df = utils.run_query(
 )
 st.dataframe(beds_df, use_container_width=True, hide_index=True)
 
-
-st.header("DATA VISUALIZATIONS")
 # ----------Plot/Table #3: Time series of COVID cases----------
 st.subheader("COVID Cases by Type of Hospital Ownership Per Week Over Time")
 """
