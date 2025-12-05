@@ -2,7 +2,6 @@ import streamlit as st
 import dashboard_queries as queries
 import dashboard_utils as utils
 import altair as alt
-import pandas as pd
 import plotly.express as px
 
 
@@ -20,13 +19,31 @@ selected_week = st.sidebar.selectbox(
 )
 st.caption(f"Report week: {selected_week}")
 
+st.header("QUERY RESULTS")
+# ----------Plot/Table #1: Totals of Weekly Logs----------
+st.subheader("Number of Weekly Logs from Each Week")
+"""
+A table with counts for weekly logs from each week.
+This shows records retrieved for user’s query
+with comparison to previous weeks.
+Note that the rows are listed from latest to earliest.
+"""
 
-# ----------Plot/Table #2----------
-st.subheader("Adult & Pediatric & COVID Beds: Current Week vs Previous 4 Weeks")
+weekly_counts = utils.run_query(
+    queries.weekly_records_summary,
+    params={"week": selected_week}
+)
+
+st.dataframe(weekly_counts, use_container_width=True, hide_index=True)
+
+st.header("DATA SUMMARY")
+# ----------Plot/Table #2: Adult & Pediatric & COVID Beds----------
+st.subheader("Adult & Pediatric & COVID Beds: Current vs Previous 4 Weeks")
 """
 A table summarizing the number of adult and pediatric beds available that week,
 the number used, and the number used by patients with COVID,
-compared to the 4 most recent weeks.
+compared to the 4 most recent weeks for each state.
+Note that you can pick which week using the filter in the sidebar.
 """
 
 beds_df = utils.run_query(
@@ -36,10 +53,30 @@ beds_df = utils.run_query(
 st.dataframe(beds_df, use_container_width=True, hide_index=True)
 
 
-# ----------Plot/Table #3: Beds in use by Quality----------
+# ----------Plot/Table #3: Time series of COVID cases----------
+st.subheader("COVID Cases by Type of Hospital Ownership Per Week Over Time")
+"""
+Total COVID cases per each type of hospital ownership per week
+Note that you can pick which week using the filter in the sidebar.
+"""
+covid_over_time = utils.run_query(
+    queries.covid_by_ownership,
+    params=(selected_week,)
+)
+
+st.dataframe(covid_over_time, use_container_width=True, hide_index=True)
+
+st.line_chart(covid_over_time, x="collection_week", y="covid_cases",
+              color="type_of_ownership", x_label="Week",
+              y_label="Number of hospitalized patients with confirmed COVID",
+              )
+
+st.header("DATA VISUALIZATIONS")
+# ----------Plot/Table #4: Beds in use by Quality----------
 st.subheader("Proportion of Beds in Use by Hospital Quality")
 """
-Proportion of total beds in use, broken down by hospital quality and bed type
+Proportion of total beds in use, broken down by hospital quality and bed type.
+Note that you can pick which week using the filter in the sidebar.
 """
 beds_by_quality = utils.run_query(
     queries.beds_fraction_by_quality,
@@ -66,11 +103,12 @@ chart3 = alt.Chart(plot3_df).mark_bar().encode(
 st.altair_chart(chart3)
 
 
-# ----------Plot/Table #4: Beds in use over time----------
+# ----------Plot/Table #5: Beds in use over time----------
 st.subheader("Total Hospital Beds Used Per Week Over Time")
 """
-The total number of beds used per week up to the selected week, along side 
+The total number of beds used per week up to the selected week, along side
 the number of beds used for COVID patients.
+Note that you can pick which week using the filter in the sidebar.
 """
 beds_over_time = utils.run_query(
     queries.beds_used_over_time,
@@ -90,7 +128,7 @@ st.line_chart(plot4_df, x="collection_week", y="beds_used", color="Bed Type",
               )
 
 
-# ----------Plot/Table #5: Map of Hospital Quality----------
+# ----------Plot/Table #6: Map of Hospital Quality----------
 st.subheader("Hospital Quality Ratings Across the US")
 """
 A map showing one dot for a hospital, colored by their latest quality rating.
@@ -122,6 +160,7 @@ st.subheader("Beds in Use by Emergency Services (Selected Week)")
 """
 Number of adult, pediatric, ICU, and COVID beds in use in the selected week,
 broken down by state and whether the hospital has emergency services.
+Note that you can pick which week using the filter in the sidebar.
 """
 
 beds_es_df = utils.run_query(
