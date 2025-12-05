@@ -163,6 +163,7 @@ broken down by state and whether the hospital has emergency services.
 Note that you can pick which week using the filter in the sidebar.
 """
 
+
 beds_es_df = utils.run_query(
     queries.beds_by_emergency_services,
     params=(selected_week,)
