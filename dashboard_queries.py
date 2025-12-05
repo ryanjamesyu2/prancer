@@ -16,7 +16,7 @@ ORDER BY state;
 
 # 1
 weekly_records_summary = """
-SELECT collection_week, COUNT(*) AS records_loaded
+SELECT collection_week as "Collection Week", COUNT(*) AS "Count of Records Loaded"
 FROM weekly_logs
 GROUP BY collection_week
 ORDER BY collection_week;
